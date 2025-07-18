@@ -1,4 +1,8 @@
 import { 
+  products, 
+  deliveryAreas, 
+  settings, 
+  categories,
   type Product, 
   type InsertProduct,
   type DeliveryArea,
@@ -8,6 +12,8 @@ import {
   type Category,
   type InsertCategory
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Products
@@ -67,6 +73,7 @@ export class MemStorage implements IStorage {
       {
         name: "تطبيق الهاتف المحمول",
         description: "تطبيق متطور للهواتف الذكية يوفر تجربة مستخدم ممتازة",
+        fullDescription: "تطبيق متطور للهواتف الذكية مصمم باستخدام أحدث التقنيات لضمان الأداء العالي والاستقرار. يتضمن واجهة مستخدم سهلة الاستخدام، نظام أمان متقدم، وإمكانيات تخصيص واسعة لتلبية احتياجاتك الخاصة.",
         price: 29900, // 299 SAR
         category: "تطبيقات",
         imageUrl: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
@@ -74,6 +81,7 @@ export class MemStorage implements IStorage {
       {
         name: "تصميم موقع إلكتروني",
         description: "تصميم موقع إلكتروني احترافي متجاوب مع جميع الأجهزة",
+        fullDescription: "تصميم موقع إلكتروني احترافي بتقنيات حديثة ومتجاوب مع جميع أحجام الشاشات. يتضمن تصميم واجهة المستخدم، تحسين محركات البحث، تكامل مع قواعد البيانات، ولوحة إدارة شاملة.",
         price: 79900, // 799 SAR
         category: "تصميم",
         imageUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
@@ -81,6 +89,7 @@ export class MemStorage implements IStorage {
       {
         name: "خدمة التسويق الرقمي",
         description: "حملة تسويقية شاملة لزيادة المبيعات والوصول للعملاء",
+        fullDescription: "خدمة تسويق رقمي متكاملة تشمل إدارة وسائل التواصل الاجتماعي، إعلانات مدفوعة، تحسين محركات البحث، تسويق عبر البريد الإلكتروني، وتحليل البيانات لضمان أفضل النتائج.",
         price: 129900, // 1299 SAR
         category: "تسويق",
         imageUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
@@ -88,6 +97,7 @@ export class MemStorage implements IStorage {
       {
         name: "متجر إلكتروني كامل",
         description: "منصة تجارة إلكترونية متكاملة مع نظام إدارة وتحليلات",
+        fullDescription: "متجر إلكتروني متكامل يتضمن عربة تسوق، نظام دفع آمن، إدارة المخزون، تتبع الطلبات، لوحة تحكم شاملة، تقارير مفصلة، وتكامل مع منصات الشحن والدفع المختلفة.",
         price: 249900, // 2499 SAR
         category: "تطوير",
         imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
@@ -95,6 +105,7 @@ export class MemStorage implements IStorage {
       {
         name: "تصميم هوية بصرية",
         description: "تصميم شعار وهوية بصرية كاملة لشركتك أو مشروعك",
+        fullDescription: "تصميم هوية بصرية متكاملة تشمل الشعار، البطاقات التجارية، الأوراق الرسمية، دليل الهوية البصرية، والقوالب التسويقية. نضمن تصميماً فريداً يعكس طبيعة عملك ويترك انطباعاً مميزاً.",
         price: 59900, // 599 SAR
         category: "تصميم",
         imageUrl: "https://pixabay.com/get/g99b4bb926200e7eb238931bd0d7dd40740652712058bd7a92067edbaa9ed84ac9db560f1db2561ae9326b395a7aade8bf7ae8e627242d5a27d4e606089c8c386_1280.jpg"
@@ -102,6 +113,7 @@ export class MemStorage implements IStorage {
       {
         name: "إدارة مواقع التواصل",
         description: "إدارة احترافية لحساباتك على مواقع التواصل الاجتماعي",
+        fullDescription: "خدمة إدارة شاملة لحساباتك على منصات التواصل الاجتماعي تتضمن إنشاء المحتوى، جدولة المنشورات، التفاعل مع المتابعين، إعداد الإعلانات المدفوعة، وتحليل الأداء مع تقارير شهرية مفصلة.",
         price: 89900, // 899 SAR
         category: "إدارة",
         imageUrl: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=300"
@@ -164,7 +176,12 @@ export class MemStorage implements IStorage {
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     const id = this.currentProductId++;
-    const product: Product = { ...insertProduct, id, isActive: true };
+    const product: Product = { 
+      ...insertProduct, 
+      id, 
+      isActive: true,
+      fullDescription: insertProduct.fullDescription || ""
+    };
     this.products.set(id, product);
     return product;
   }
@@ -279,4 +296,150 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// rewrite MemStorage to DatabaseStorage
+export class DatabaseStorage implements IStorage {
+  // Products
+  async getProducts(): Promise<Product[]> {
+    const result = await db.select().from(products).where(eq(products.isActive, true));
+    return result;
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product || undefined;
+  }
+
+  async createProduct(insertProduct: InsertProduct): Promise<Product> {
+    const [product] = await db
+      .insert(products)
+      .values({
+        ...insertProduct,
+        fullDescription: insertProduct.fullDescription || ""
+      })
+      .returning();
+    return product;
+  }
+
+  async updateProduct(id: number, updateData: Partial<InsertProduct>): Promise<Product | undefined> {
+    const [product] = await db
+      .update(products)
+      .set(updateData)
+      .where(eq(products.id, id))
+      .returning();
+    return product || undefined;
+  }
+
+  async deleteProduct(id: number): Promise<boolean> {
+    const [product] = await db
+      .update(products)
+      .set({ isActive: false })
+      .where(eq(products.id, id))
+      .returning();
+    return !!product;
+  }
+
+  // Delivery Areas
+  async getDeliveryAreas(): Promise<DeliveryArea[]> {
+    const result = await db.select().from(deliveryAreas).where(eq(deliveryAreas.isActive, true));
+    return result;
+  }
+
+  async getDeliveryArea(id: number): Promise<DeliveryArea | undefined> {
+    const [area] = await db.select().from(deliveryAreas).where(eq(deliveryAreas.id, id));
+    return area || undefined;
+  }
+
+  async createDeliveryArea(insertArea: InsertDeliveryArea): Promise<DeliveryArea> {
+    const [area] = await db
+      .insert(deliveryAreas)
+      .values(insertArea)
+      .returning();
+    return area;
+  }
+
+  async updateDeliveryArea(id: number, updateData: Partial<InsertDeliveryArea>): Promise<DeliveryArea | undefined> {
+    const [area] = await db
+      .update(deliveryAreas)
+      .set(updateData)
+      .where(eq(deliveryAreas.id, id))
+      .returning();
+    return area || undefined;
+  }
+
+  async deleteDeliveryArea(id: number): Promise<boolean> {
+    const [area] = await db
+      .update(deliveryAreas)
+      .set({ isActive: false })
+      .where(eq(deliveryAreas.id, id))
+      .returning();
+    return !!area;
+  }
+
+  // Settings
+  async getSettings(): Promise<Setting[]> {
+    const result = await db.select().from(settings);
+    return result;
+  }
+
+  async getSetting(key: string): Promise<Setting | undefined> {
+    const [setting] = await db.select().from(settings).where(eq(settings.key, key));
+    return setting || undefined;
+  }
+
+  async setSetting(insertSetting: InsertSetting): Promise<Setting> {
+    const existing = await this.getSetting(insertSetting.key);
+    if (existing) {
+      const [updated] = await db
+        .update(settings)
+        .set({ value: insertSetting.value })
+        .where(eq(settings.key, insertSetting.key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(settings)
+        .values(insertSetting)
+        .returning();
+      return created;
+    }
+  }
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    const result = await db.select().from(categories).where(eq(categories.isActive, true));
+    return result;
+  }
+
+  async getCategory(id: number): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category || undefined;
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const [category] = await db
+      .insert(categories)
+      .values(insertCategory)
+      .returning();
+    return category;
+  }
+
+  async updateCategory(id: number, updateData: Partial<InsertCategory>): Promise<Category | undefined> {
+    const [category] = await db
+      .update(categories)
+      .set(updateData)
+      .where(eq(categories.id, id))
+      .returning();
+    return category || undefined;
+  }
+
+  async deleteCategory(id: number): Promise<boolean> {
+    const [category] = await db
+      .update(categories)
+      .set({ isActive: false })
+      .where(eq(categories.id, id))
+      .returning();
+    return !!category;
+  }
+}
+
+export const storage = new DatabaseStorage();

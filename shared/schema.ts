@@ -6,6 +6,7 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
+  fullDescription: text("full_description").notNull().default(""),
   price: integer("price").notNull(), // Price in smallest currency unit (halalas)
   category: text("category").notNull(),
   imageUrl: text("image_url").notNull(),
