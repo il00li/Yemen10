@@ -26,6 +26,12 @@ export const settings = pgTable("settings", {
   value: text("value").notNull(),
 });
 
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
 export const insertProductSchema = createInsertSchema(products).omit({
   id: true,
   isActive: true,
@@ -40,9 +46,16 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
   id: true,
 });
 
+export const insertCategorySchema = createInsertSchema(categories).omit({
+  id: true,
+  isActive: true,
+});
+
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type DeliveryArea = typeof deliveryAreas.$inferSelect;
 export type InsertDeliveryArea = z.infer<typeof insertDeliveryAreaSchema>;
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;

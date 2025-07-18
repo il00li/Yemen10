@@ -4,7 +4,9 @@ import {
   type DeliveryArea,
   type InsertDeliveryArea,
   type Setting,
-  type InsertSetting
+  type InsertSetting,
+  type Category,
+  type InsertCategory
 } from "@shared/schema";
 
 export interface IStorage {
@@ -26,23 +28,34 @@ export interface IStorage {
   getSettings(): Promise<Setting[]>;
   getSetting(key: string): Promise<Setting | undefined>;
   setSetting(setting: InsertSetting): Promise<Setting>;
+
+  // Categories
+  getCategories(): Promise<Category[]>;
+  getCategory(id: number): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private products: Map<number, Product>;
   private deliveryAreas: Map<number, DeliveryArea>;
   private settings: Map<string, Setting>;
+  private categories: Map<number, Category>;
   private currentProductId: number;
   private currentDeliveryAreaId: number;
   private currentSettingId: number;
+  private currentCategoryId: number;
 
   constructor() {
     this.products = new Map();
     this.deliveryAreas = new Map();
     this.settings = new Map();
+    this.categories = new Map();
     this.currentProductId = 1;
     this.currentDeliveryAreaId = 1;
     this.currentSettingId = 1;
+    this.currentCategoryId = 1;
 
     // Initialize with sample data
     this.initializeData();
@@ -123,6 +136,20 @@ export class MemStorage implements IStorage {
 
     defaultSettings.forEach(setting => {
       this.setSetting(setting);
+    });
+
+    // Default categories
+    const defaultCategories: InsertCategory[] = [
+      { name: "ملابس رجالية" },
+      { name: "ملابس نسائية" },
+      { name: "ملابس أطفال" },
+      { name: "تطبيقات" },
+      { name: "تصميم" },
+      { name: "تسويق" }
+    ];
+
+    defaultCategories.forEach(category => {
+      this.createCategory(category);
     });
   }
 
@@ -215,6 +242,40 @@ export class MemStorage implements IStorage {
       this.settings.set(insertSetting.key, setting);
       return setting;
     }
+  }
+
+  // Categories
+  async getCategories(): Promise<Category[]> {
+    return Array.from(this.categories.values()).filter(c => c.isActive);
+  }
+
+  async getCategory(id: number): Promise<Category | undefined> {
+    return this.categories.get(id);
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const id = this.currentCategoryId++;
+    const category: Category = { ...insertCategory, id, isActive: true };
+    this.categories.set(id, category);
+    return category;
+  }
+
+  async updateCategory(id: number, updateData: Partial<InsertCategory>): Promise<Category | undefined> {
+    const category = this.categories.get(id);
+    if (!category) return undefined;
+    
+    const updatedCategory = { ...category, ...updateData };
+    this.categories.set(id, updatedCategory);
+    return updatedCategory;
+  }
+
+  async deleteCategory(id: number): Promise<boolean> {
+    const category = this.categories.get(id);
+    if (!category) return false;
+    
+    const updatedCategory = { ...category, isActive: false };
+    this.categories.set(id, updatedCategory);
+    return true;
   }
 }
 

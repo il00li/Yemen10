@@ -32,11 +32,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Components
 
+## Recent Changes: Latest modifications with dates
+
+### January 18, 2025 - UI/UX Enhancements & Category System
+- ✅ Simplified header to show only site name
+- ✅ Added beautiful Arabic fonts (Cairo, Amiri) 
+- ✅ Redesigned footer with consistent colors and minimal content
+- ✅ Implemented category filter system with glass buttons
+- ✅ Enhanced order button with WhatsApp green gradient
+- ✅ Added comprehensive category management in admin panel
+
 ### Database Schema
-Three main entities defined in `shared/schema.ts`:
+Four main entities defined in `shared/schema.ts`:
 1. **Products**: Product catalog with pricing in halalas (smallest currency unit)
-2. **Delivery Areas**: Geographic delivery zones with fees and timing
-3. **Settings**: Key-value configuration storage
+2. **Categories**: Product categorization system for filtering
+3. **Delivery Areas**: Geographic delivery zones with fees and timing
+4. **Settings**: Key-value configuration storage
 
 ### Frontend Components
 - **Product Management**: Product display cards with WhatsApp integration

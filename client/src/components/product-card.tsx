@@ -52,13 +52,13 @@ export function ProductCard({ product }: ProductCardProps) {
         <span className="text-2xl font-bold text-primary">{formatPrice(product.price)}</span>
         <span className="text-sm text-gray-500">{product.category}</span>
       </div>
-      <GlassButton 
-        className="w-full" 
+      <button 
+        className="order-button w-full px-4 py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
         onClick={handleOrderNow}
       >
-        <i className="fab fa-whatsapp ml-2"></i>
+        <i className="fab fa-whatsapp text-lg"></i>
         اطلب الآن
-      </GlassButton>
+      </button>
     </div>
   );
 }
