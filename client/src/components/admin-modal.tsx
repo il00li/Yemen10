@@ -24,10 +24,13 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
   const [newProduct, setNewProduct] = useState<InsertProduct>({
     name: "",
     description: "",
+    fullDescription: "",
     price: 0,
     category: "",
     imageUrl: ""
   });
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const [newDeliveryArea, setNewDeliveryArea] = useState<InsertDeliveryArea>({
     name: "",
@@ -74,7 +77,7 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     mutationFn: (data: InsertProduct) => apiRequest("POST", "/api/products", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      setNewProduct({ name: "", description: "", price: 0, category: "", imageUrl: "" });
+      setNewProduct({ name: "", description: "", fullDescription: "", price: 0, category: "", imageUrl: "" });
       toast({ title: "تم إضافة المنتج بنجاح" });
     },
     onError: () => {
@@ -175,6 +178,43 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     createCategoryMutation.mutate(newCategory);
   };
 
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في رفع الصورة');
+      }
+      
+      const result = await response.json();
+      setNewProduct(prev => ({ ...prev, imageUrl: result.imageUrl }));
+      
+      toast({
+        title: "تم رفع الصورة بنجاح",
+        description: "يمكنك الآن إضافة المنتج"
+      });
+    } catch (error) {
+      toast({
+        title: "فشل في رفع الصورة",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSaveSettings = () => {
     Object.entries(settings).forEach(([key, value]) => {
       updateSettingMutation.mutate({ key, value });
@@ -238,21 +278,46 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="productImage">رابط الصورة</Label>
-                  <Input
-                    id="productImage"
-                    value={newProduct.imageUrl}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    className="text-right"
-                  />
+                  <Label htmlFor="productImage">صورة المنتج</Label>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="w-full p-2 border border-gray-300 rounded-lg"
+                      disabled={isUploading}
+                    />
+                    {isUploading && <p className="text-sm text-blue-600">جاري رفع الصورة...</p>}
+                    {newProduct.imageUrl && (
+                      <div className="mt-2">
+                        <img 
+                          src={newProduct.imageUrl} 
+                          alt="معاينة الصورة" 
+                          className="w-32 h-32 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="productDescription">الوصف</Label>
+                  <Label htmlFor="productDescription">الوصف المختصر</Label>
                   <Textarea
                     id="productDescription"
                     value={newProduct.description}
                     onChange={(e) => setNewProduct(prev => ({ ...prev, description: e.target.value }))}
                     className="text-right"
+                    rows={2}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="productFullDescription">الوصف الكامل</Label>
+                  <Textarea
+                    id="productFullDescription"
+                    value={newProduct.fullDescription}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, fullDescription: e.target.value }))}
+                    className="text-right"
+                    rows={4}
+                    placeholder="وصف تفصيلي للمنتج يظهر عند الضغط على زر التفاصيل"
                   />
                 </div>
               </div>
