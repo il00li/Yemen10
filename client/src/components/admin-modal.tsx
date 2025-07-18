@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Product, DeliveryArea, Setting, InsertProduct, InsertDeliveryArea } from "@shared/schema";
+import { Product, DeliveryArea, Setting, Category, InsertProduct, InsertDeliveryArea, InsertCategory } from "@shared/schema";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { GlassButton } from "./glass-button";
@@ -35,6 +35,10 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     deliveryTime: ""
   });
 
+  const [newCategory, setNewCategory] = useState<InsertCategory>({
+    name: ""
+  });
+
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   // Queries
@@ -45,6 +49,11 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const { data: deliveryAreas, isLoading: areasLoading } = useQuery<DeliveryArea[]>({
     queryKey: ["/api/delivery-areas"],
+    enabled: isOpen
+  });
+
+  const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
     enabled: isOpen
   });
 
@@ -107,6 +116,29 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     }
   });
 
+  const createCategoryMutation = useMutation({
+    mutationFn: (data: InsertCategory) => apiRequest("POST", "/api/categories", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setNewCategory({ name: "" });
+      toast({ title: "تم إضافة التصنيف بنجاح" });
+    },
+    onError: () => {
+      toast({ title: "فشل في إضافة التصنيف", variant: "destructive" });
+    }
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "تم حذف التصنيف بنجاح" });
+    },
+    onError: () => {
+      toast({ title: "فشل في حذف التصنيف", variant: "destructive" });
+    }
+  });
+
   const updateSettingMutation = useMutation({
     mutationFn: (data: { key: string; value: string }) => 
       apiRequest("POST", "/api/settings", data),
@@ -135,6 +167,14 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
     createDeliveryAreaMutation.mutate(newDeliveryArea);
   };
 
+  const handleAddCategory = () => {
+    if (!newCategory.name) {
+      toast({ title: "يرجى إدخال اسم التصنيف", variant: "destructive" });
+      return;
+    }
+    createCategoryMutation.mutate(newCategory);
+  };
+
   const handleSaveSettings = () => {
     Object.entries(settings).forEach(([key, value]) => {
       updateSettingMutation.mutate({ key, value });
@@ -154,8 +194,9 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
         </DialogHeader>
 
         <Tabs defaultValue="products" className="w-full" dir="rtl">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="products">المنتجات</TabsTrigger>
+            <TabsTrigger value="categories">التصنيفات</TabsTrigger>
             <TabsTrigger value="delivery">مناطق التوصيل</TabsTrigger>
             <TabsTrigger value="settings">الإعدادات</TabsTrigger>
           </TabsList>
@@ -255,6 +296,68 @@ export function AdminModal({ isOpen, onClose }: AdminModalProps) {
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-600">لا توجد منتجات</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="categories" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">إدارة التصنيفات</h3>
+            </div>
+
+            {/* Add new category form */}
+            <div className="glass-effect rounded-lg p-4 space-y-4">
+              <h4 className="font-bold text-right">إضافة تصنيف جديد</h4>
+              <div className="flex gap-4 items-end">
+                <div className="flex-1">
+                  <Label htmlFor="categoryName">اسم التصنيف</Label>
+                  <Input
+                    id="categoryName"
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                    className="text-right"
+                    placeholder="مثال: ملابس رجالية"
+                  />
+                </div>
+                <GlassButton 
+                  onClick={handleAddCategory}
+                  disabled={createCategoryMutation.isPending}
+                >
+                  {createCategoryMutation.isPending ? "جاري الإضافة..." : "إضافة التصنيف"}
+                </GlassButton>
+              </div>
+            </div>
+
+            {/* Categories list */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {categoriesLoading ? (
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="glass-effect rounded-lg p-4">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-8 w-20" />
+                  </div>
+                ))
+              ) : categories && categories.length > 0 ? (
+                categories.map((category) => (
+                  <div key={category.id} className="glass-effect rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <h5 className="font-bold text-lg">{category.name}</h5>
+                      <GlassButton 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => deleteCategoryMutation.mutate(category.id)}
+                        disabled={deleteCategoryMutation.isPending}
+                        className="text-red-600 hover:bg-red-600 hover:text-white"
+                      >
+                        حذف
+                      </GlassButton>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 text-center py-8">
+                  <p className="text-gray-600">لا توجد تصنيفات</p>
                 </div>
               )}
             </div>

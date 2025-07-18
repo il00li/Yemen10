@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Product, DeliveryArea, Setting } from "@shared/schema";
+import { Product, DeliveryArea, Setting, Category } from "@shared/schema";
 import { ProductCard } from "@/components/product-card";
 import { AdminModal } from "@/components/admin-modal";
 import { DeliveryModal } from "@/components/delivery-modal";
@@ -14,6 +14,7 @@ export default function Home() {
   const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Queries
@@ -25,11 +26,20 @@ export default function Home() {
     queryKey: ["/api/settings"]
   });
 
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ["/api/categories"]
+  });
+
   // Convert settings array to object for easier access
   const settingsMap = settings?.reduce((acc, setting) => {
     acc[setting.key] = setting.value;
     return acc;
   }, {} as Record<string, string>) || {};
+
+  // Filter products by selected category
+  const filteredProducts = selectedCategory 
+    ? products?.filter(product => product.category === selectedCategory)
+    : products;
 
   const handleSiteNameClick = () => {
     setClickCount(prev => prev + 1);
@@ -116,40 +126,14 @@ export default function Home() {
     <div className="min-h-screen" dir="rtl">
       {/* Header */}
       <header className="glass-effect sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4 space-x-reverse">
-              <i className="fas fa-store text-2xl text-primary"></i>
-              <h1 
-                className="text-2xl font-bold text-gray-800 cursor-pointer select-none"
-                onClick={handleSiteNameClick}
-              >
-                {settingsMap.site_name || "متجر المنتجات الرقمية"}
-              </h1>
-            </div>
-            <nav className="hidden md:flex space-x-6 space-x-reverse">
-              <button 
-                onClick={() => smoothScrollTo('products')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                المنتجات
-              </button>
-              <button 
-                onClick={() => smoothScrollTo('about')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                من نحن
-              </button>
-              <button 
-                onClick={() => smoothScrollTo('contact')}
-                className="text-gray-700 hover:text-primary transition-colors"
-              >
-                تواصل معنا
-              </button>
-            </nav>
-            <button className="md:hidden glass-button px-4 py-2 rounded-lg">
-              <i className="fas fa-bars text-gray-700"></i>
-            </button>
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center">
+            <h1 
+              className="text-3xl font-bold text-gray-800 cursor-pointer select-none"
+              onClick={handleSiteNameClick}
+            >
+              {settingsMap.site_name || "متجر المنتجات الرقمية"}
+            </h1>
           </div>
         </div>
       </header>
@@ -180,7 +164,28 @@ export default function Home() {
       {/* Products Section */}
       <section id="products" className="py-16">
         <div className="container mx-auto px-4">
-          <h3 className="text-3xl font-bold text-center text-gray-800 mb-12">منتجاتنا المتاحة</h3>
+          <h3 className="text-3xl font-bold text-center text-gray-800 mb-8">منتجاتنا المتاحة</h3>
+          
+          {/* Category Filter Buttons */}
+          {categories && categories.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3 mb-12">
+              <GlassButton
+                onClick={() => setSelectedCategory(null)}
+                className={`${!selectedCategory ? 'bg-primary text-white' : ''}`}
+              >
+                جميع المنتجات
+              </GlassButton>
+              {categories.map((category) => (
+                <GlassButton
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.name)}
+                  className={`${selectedCategory === category.name ? 'bg-primary text-white' : ''}`}
+                >
+                  {category.name}
+                </GlassButton>
+              ))}
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {productsLoading ? (
@@ -196,8 +201,8 @@ export default function Home() {
                   <Skeleton className="h-12 w-full" />
                 </div>
               ))
-            ) : products && products.length > 0 ? (
-              products.map((product) => (
+            ) : filteredProducts && filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))
             ) : (
@@ -211,112 +216,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-16 bg-white/50">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h3 className="text-3xl font-bold text-gray-800 mb-8">من نحن</h3>
-            <p className="text-lg text-gray-600 mb-8">
-              نحن فريق من المطورين والمصممين المتخصصين في تقديم حلول رقمية مبتكرة. نساعد الشركات والأفراد 
-              على تحقيق أهدافهم الرقمية من خلال منتجات عالية الجودة وخدمة عملاء ممتازة.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-              <div className="glass-effect rounded-2xl p-6">
-                <i className="fas fa-rocket text-4xl text-primary mb-4"></i>
-                <h4 className="text-xl font-bold text-gray-800 mb-2">سرعة في التنفيذ</h4>
-                <p className="text-gray-600">نسلم مشاريعك في الوقت المحدد بجودة عالية</p>
-              </div>
-              <div className="glass-effect rounded-2xl p-6">
-                <i className="fas fa-shield-alt text-4xl text-primary mb-4"></i>
-                <h4 className="text-xl font-bold text-gray-800 mb-2">ضمان الجودة</h4>
-                <p className="text-gray-600">نضمن جودة المنتجات ونقدم دعم فني مستمر</p>
-              </div>
-              <div className="glass-effect rounded-2xl p-6">
-                <i className="fas fa-users text-4xl text-primary mb-4"></i>
-                <h4 className="text-xl font-bold text-gray-800 mb-2">فريق متخصص</h4>
-                <p className="text-gray-600">فريق من الخبراء في مختلف المجالات التقنية</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
-      <footer id="contact" className="bg-gray-900 text-white py-12">
+      <footer className="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h4 className="text-xl font-bold mb-4">
-                {settingsMap.site_name || "متجر المنتجات الرقمية"}
-              </h4>
-              <p className="text-gray-400">
-                نقدم أفضل الحلول الرقمية لشركتك مع خدمة عملاء متميزة ودعم فني مستمر.
-              </p>
-            </div>
+          <div className="flex flex-col md:flex-row justify-center items-center gap-8">
+            {/* Delivery Areas Button */}
+            <GlassButton 
+              onClick={() => setIsDeliveryModalOpen(true)}
+              className="text-gray-700 hover:text-primary"
+            >
+              <i className="fas fa-map-marker-alt ml-2"></i>
+              مناطق التوصيل
+            </GlassButton>
             
-            <div>
-              <h4 className="text-lg font-bold mb-4">روابط سريعة</h4>
-              <ul className="space-y-2">
-                <li>
-                  <button 
-                    onClick={() => smoothScrollTo('products')}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    المنتجات
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => smoothScrollTo('about')}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    من نحن
-                  </button>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => smoothScrollTo('contact')}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    تواصل معنا
-                  </button>
-                </li>
-              </ul>
+            {/* Social Media Icons */}
+            <div className="flex space-x-4 space-x-reverse">
+              {socialLinks.map((social) => (
+                <a 
+                  key={social.name}
+                  href={social.url}
+                  target={social.url !== "#" ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className={`glass-button p-3 rounded-full transition-colors ${social.color}`}
+                >
+                  <i className={`${social.icon} text-xl`}></i>
+                </a>
+              ))}
             </div>
-            
-            <div>
-              <h4 className="text-lg font-bold mb-4">مناطق التوصيل</h4>
-              <GlassButton 
-                onClick={() => setIsDeliveryModalOpen(true)}
-                className="text-gray-300 hover:text-white"
-              >
-                <i className="fas fa-map-marker-alt mr-2"></i>
-                عرض المناطق المتاحة
-              </GlassButton>
-            </div>
-            
-            <div>
-              <h4 className="text-lg font-bold mb-4">تابعنا على</h4>
-              <div className="flex space-x-4 space-x-reverse">
-                {socialLinks.map((social) => (
-                  <a 
-                    key={social.name}
-                    href={social.url}
-                    target={social.url !== "#" ? "_blank" : undefined}
-                    rel="noopener noreferrer"
-                    className={`glass-button p-3 rounded-full transition-colors ${social.color}`}
-                  >
-                    <i className={`${social.icon} text-xl`}></i>
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center">
-            <p className="text-gray-400">
-              &copy; 2024 {settingsMap.site_name || "متجر المنتجات الرقمية"}. جميع الحقوق محفوظة.
-            </p>
           </div>
         </div>
       </footer>
